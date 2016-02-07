@@ -21,6 +21,9 @@ class prior:
 
     @staticmethod
     def eval(theta):
+        """
+        Evaluates the value of a prior at point theta
+        """
         if (-2 < theta[0] < 2 and
             theta[0] + theta[1] > -1 and
             theta[0] - theta[1] < 1):
@@ -28,19 +31,19 @@ class prior:
         else:
             return 0
 
-    # NOT IN USE
     @staticmethod
     def simulMulti(n):
         """
-        Simulates n observations from the prior
+        Simulates n observations from the prior.
+        Returns 2 x n matrix, where each column contains
+        one observation.
         """
         theta1 = np.random.uniform(-2,2,n)
         theta2 = np.random.uniform(-1,1,n)
-        omega1 = [(t1,t2) for t1,t2 in zip(theta1, theta2)
-                  if t1+t2 > -1 and t1 - t2 < 1]
-        omega2 = [( np.sign(t1) * (2-np.abs(t1)),-t2) for t1, t2
-                  in zip(theta1, theta2) if not (t1+t2 > -1 and t1-t2 < 1)]
-        theta = np.vstack([omega1, omega2])
+        index = ((theta1 + theta2 <= -1) + (theta1 - theta2 >= 1) > 0)
+        theta1[index] = np.sign(theta1[index]) * (2-np.abs(theta1[index]))
+        theta2[index] = - theta2[index]
+        theta = np.array([theta1, theta2])
         return theta
 
 class likelihood:
@@ -49,13 +52,26 @@ class likelihood:
     """
 
     @staticmethod
-    def simul(theta,n_full):
+    def simul(theta,n):
         """
         Simulates one observation from the likelihood
         """
-        u = np.random.normal(0,1,n_full)
+        u = np.random.normal(0,1,n)
         z = u[2:] + theta[0]*u[1:-1] + theta[1]*u[:-2]
         return np.array(z)
+
+    @staticmethod
+    def simulMulti(thetas, n):
+        """
+        Simulate n observations from the likelihood (n = len(theta)).
+        Returns (n_full-2) x n matrix of observations, where each
+        column contains one observation.
+        """
+        u = np.random.randn(n,thetas.shape[1])
+        z = u[2:,:] + thetas[0] * u[1:-1,:] +\
+            thetas[1] * u[:-2,:]
+        return z
+
 
 class proposal:
 
@@ -106,12 +122,4 @@ class densKernel:
                                   cov = np.diag(np.ones(n)))
         M = mvn.pdf(np.zeros(n))
         return mvn.pdf(x) / M
-
-def simulate_dataset(theta, epochs):
-    """
-    Simulates realisation of the MA(2) for epochs+2 number of observations
-    """
-    u = np.random.normal(0, 1, epochs + 2)
-    y = u[2:] + theta[0]*u[1:-1] + theta[1]*u[:-2]
-    return np.array(y)
 

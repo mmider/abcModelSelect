@@ -1,5 +1,13 @@
 import numpy as np
 
+"""
+Naive implementations of ABC algorithms. They make use of for loops
+and hence are rather slow. On the plus side they return exactly
+as many samples of thetas and zs as they are for, as well as they should
+work in the most general of settings.
+"""
+
+
 def sampler(y, iterations, prior, likelihood,
                dist, tolerance, sum_statistics):
     print("Running an ABC sampler.")
@@ -120,11 +128,6 @@ def kernelMCMCSampler(y, iterations, prior, likelihood,
         zs.append(z)
     return (thetas, zs)
 
-def semiAutomaticSampler(y, iterations, prior, likelihood,
-                         densKernel, bandwidth, sum_statistics,
-                         dist, tolerance, data_transform):
-    raise NotImplementedError
-
 def modelChoiceSampler(y, iterations, paramPriors, likelihoods,
                        modelPrior, dist, tolerance, sum_statistics):
     print("Running an ABC model choice sampler.")
@@ -147,30 +150,10 @@ def modelChoiceSampler(y, iterations, paramPriors, likelihoods,
         ms.append(m)
     return (thetas, zs, ms)
 
-def modelChoiceSamplerMulti(y, iterations, paramPriors, likelihoods,
-                            modelPrior, dist, tolerance, sum_statistics):
-    print("Running a quick ABC model choice sampler.")
-    n_full = len(y)
-    y_stats = sum_statistics(y)
-    p = progress(iterations)
-    ms = modelPrior.simulMulti(iterations)
-    thetas = []
-    zs = []
-    ds = []
-    for i in range(2):
-        print("yo")
-        thetas.append(paramPriors[i].simulMulti(ms[i]))
-        zs.append(likelihoods[i].simulMulti(thetas[i], n_full))
-        ds.append(dist(sum_statistics(zs[i], True), y_stats))
-        index = ds[i] <= tolerance
-        #thetas[i] = thetas[i][index]
-        #zs[i] = zs[i][:,index]
-        print(ms[i])
-        ms[i] = np.sum(1 * index)
-        print(ms[i])
-    #zs = [val for sublist in zs for val in sublist]
-    #theta = [val for sublist in zs for val in sublist]
-    return ms
+def semiAutomaticSampler(y, iterations, prior, likelihood,
+                         densKernel, bandwidth, sum_statistics,
+                         dist, tolerance, data_transform):
+    raise NotImplementedError
 
 def findEpsilon(y, iterations, prior, likelihood,
                dist, perc, sum_statistics):
