@@ -15,9 +15,9 @@ def test_MA2_samplers(which = "basic", noisy = False,
                       exactBF = False):
     # simulate observation
     if generator == "MA(2)":
-        y = MA2.likelihood.simul(theta = [0.6,0.2], n = 100+2)
+        y = MA2.likelihood.simul(theta = [0.6,0.2], n = 50+2)
     elif generator == "MA(1)":
-        y = MA1.likelihood.simul(theta = 0.6, n = 100+1)
+        y = MA1.likelihood.simul(theta = 0.6, n = 50+1)
     else:
         raise ValueError("Invalid name of the generator, "
                          "only MA(1) and MA(2) are allowed.")
@@ -89,7 +89,9 @@ def test_MA2_samplers(which = "basic", noisy = False,
                                   sum_statistics = misc.autocov)
 
         if naive:
-            thetas, zs, ms = ABC.modelChoiceSampler(y = y, iterations = iterations,
+            evs = []
+            for e in eps:
+                thetas, zs, ms = ABC.modelChoiceSampler(y = y, iterations = iterations,
                                                     paramPriors = [MA1.prior, MA2.prior],
                                                     likelihoods = [MA1.likelihood, MA2.likelihood],
                                                     modelPrior = misc.twoModelsPrior,
@@ -97,7 +99,8 @@ def test_MA2_samplers(which = "basic", noisy = False,
                                                     tolerance = 7,
                                                     sum_statistics = misc.autocov)
 
-            ev0 = len([m for m in ms if m == 0])/len(ms)
+                ev0 = len([m for m in ms if m == 0])/len(ms)
+                evs.append(ev0)
         else:
             evs = []
             for e in eps:
@@ -112,9 +115,9 @@ def test_MA2_samplers(which = "basic", noisy = False,
                 evs.append(ev0)
         if exactBF:
             print("Finding actual Bayes Factor...\n")
-            exact = bf.MALogBayesFactor(y, resolution=(100,200))
+            ev0exact = bf.MALogBayesFactor(y, resolution=(100,200))
         for e in evs:
-            misc.printModelChoice("MA(1)", "MA(2)", e, logBF = exact)
+            misc.printModelChoice("MA(1)", "MA(2)", e, ev0exact)
     else:
         raise ValueError("Invalid name of tested model.")
 

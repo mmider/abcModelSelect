@@ -99,7 +99,7 @@ class MAq_likelihood:
         """
         for i in range(self.T):
             self.eps[i+self.q] = self.x[i] +\
-                            np.sum([self.theta[j] * self.eps[i + j]
+                            np.sum([self.theta[self.q - 1 - j] * self.eps[i + j]
                                     for j in range(self.q)])
     
     def loglik(self):
@@ -109,7 +109,7 @@ class MAq_likelihood:
         done on the first q epsilons.
         """
         loglik = np.sum([-(self.x[i] +\
-                           np.sum([self.theta[j] * self.eps[i+j+1]
+                           np.sum([self.theta[self.q - 1 - j] * self.eps[i+j+1]
                                    for j in range(self.q)]))**2
                          for i in range(self.T)])
         return loglik
@@ -151,6 +151,8 @@ def MALogBayesFactor(x, resolution = (400,200)):
     M2 = np.max(ll[1,:])
     A = np.log(np.mean(np.exp(ll[0,:] - M1)))+M1
     B = np.log(np.mean(np.exp(ll[1,:] - M2)))+M2
+    # don't return this value for now, instead go with P(M=0|x)
     logBayesFactor = A - B
-    return logBayesFactor
+    ev0 = np.exp(A)/(np.exp(A) + np.exp(B))
+    return ev0
 
