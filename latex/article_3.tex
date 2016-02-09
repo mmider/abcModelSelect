@@ -1,0 +1,249 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Stylish Article
+% LaTeX Template
+% Version 2.1 (1/10/15)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Mathias Legrand (legrand.mathias@gmail.com) 
+% With extensive modifications by:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[fleqn,10pt]{SelfArx} % Document font size and equations flushed left
+
+\usepackage[english]{babel} % Specify a different language here - english by default
+
+\usepackage[]{algorithm2e}
+\usepackage{amsmath, bbm}
+\usepackage{lipsum} % Required to insert dummy text. To be removed otherwise
+
+%----------------------------------------------------------------------------------------
+%	COLUMNS
+%----------------------------------------------------------------------------------------
+
+\setlength{\columnsep}{0.55cm} % Distance between the two columns of text
+\setlength{\fboxrule}{0.75pt} % Width of the border around the abstract
+
+%----------------------------------------------------------------------------------------
+%	COLORS
+%----------------------------------------------------------------------------------------
+
+\definecolor{color1}{RGB}{0,0,90} % Color of the article title and sections
+\definecolor{color2}{RGB}{0,20,20} % Color of the boxes behind the abstract and headings
+
+%----------------------------------------------------------------------------------------
+%	HYPERLINKS
+%----------------------------------------------------------------------------------------
+
+\usepackage{hyperref} % Required for hyperlinks
+\hypersetup{hidelinks,colorlinks,breaklinks=true,urlcolor=color2,citecolor=color1,linkcolor=color1,bookmarksopen=false,pdftitle={Title},pdfauthor={Author}}
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE INFORMATION
+%----------------------------------------------------------------------------------------
+
+\JournalInfo{OxWaSP, Module 6, Bayesian Analysis} % Journal information
+\Archive{ABC - Model Selection} % Additional notes (e.g. copyright, DOI, review/research article)
+
+\PaperTitle{Approximate Bayesian Computation - issues with model selection.} % Article title
+
+\Authors{Giuseppe Di Benedetto\textsuperscript{1}, Paul Vanetti\textsuperscript{1}, Marcin Mider\textsuperscript{2}} % Authors
+\affiliation{\textsuperscript{1}\textit{Department of Statistics, University of Oxford, Oxford, United Kingdom}} % Author affiliation
+\affiliation{\textsuperscript{2}\textit{Department of Statistics, University of Warwick, Coventry, United Kingdom}} % Author affiliation
+\affiliation{\textbf{Contact address}: marcin.mider@spc.ox.ac.uk} % Corresponding author
+
+\Keywords{}%Bayesian --- ABC --- Keyword3} % Keywords - if you don't want any simply remove all the text between the curly brackets
+\newcommand{\keywordname}{Keywords} % Defines the keywords heading name
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\Abstract{\lipsum[1]~}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\flushbottom % Makes all text pages the same height
+
+\maketitle % Print the title and abstract box
+
+\tableofcontents % Print the contents section
+
+\thispagestyle{empty} % Removes page numbering from the first page
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section*{Introduction} % The \section*{} command stops section numbering
+
+\addcontentsline{toc}{section}{Introduction} % Adds this section to the table of contents
+% write about why and when do we need ABC methods
+Often times the likelihood function for the complex statistical problems has either a complicated form - prohibitive for pointwise evaluation (for instance when it involves complicated integral expressions), or it is impossible to write it down explicitly, and the numerical approximations are computationally intractable, as is the case with SDEs. Many of the modern statistical algorithms well suited for the inference on the parameters of the complex statistical models - such as multiple variations of SMC or MCMC - require at some point a pointwise evalutaion of the likelihood funciton. Consequently, its unavailability is a major obstacle for making any sort of statistical inferenece. This is the problem that Approximate Bayesian Computation aims at addressing - it circumvents the need for the exact evaluation of the likelihood funciton and instead requires only possibility of simulating from it. It is therefore not a panacea - some information about the likelihood still needs to be known - but it turns out that simulating from the likelihood is in many practical applications an easier task than evaluating it pointwise.\\
+
+ABC methodologies have recently gained much popularity in applications to population genetics and ecology. Nonetheless, the methods are not free of problems and are frequently criticized for not having adequate theoretical justificiations. Sometimes one can even show that a naive implementations of the algorithm, devoid of any critical examination of the applicability to the problem at hand may lead to the wrong inferences being made.\\
+
+There are many variations of the algorithm and in this report we did not aim at giving a review of them all. Instead, we focused on the problem of using ABC for the Model Selection and tried to give an brief overview of the problems associated with it.
+
+%------------------------------------------------
+
+\section{Overview - ABC methods}
+The principal idea of the ABC algorithms stems from:
+\begin{equation}
+\pi(\theta|y)\propto \pi(\theta)f(y|\theta) = \sum_z\pi(\theta)f(z|\theta)\mathbbm{1}_y(z),
+\end{equation}
+in the discrete case, or:
+\begin{equation}\label{eq:abc_cts}
+\begin{split}
+\pi(\theta|y)\propto& \pi(\theta)f(y|\theta) = \int\pi(\theta)f(z|\theta)\delta_y(z)dz\approx\\
+\approx&\int\pi(\theta)f(z|\theta)\mathbbm{1}_{\rho(y,z)\leq \epsilon}dz
+\end{split}
+\end{equation}
+in the continuous case. The former suggests that instead of computing the sum explicitly, we could instead perform a simple rejection sampling: simulate from $f(z|\theta)$ until $y=z$ and repeat the procedure in order to get an approximation for the posterior $\pi(\theta|y)$. In this case the standard CLT arguments apply, showing the convergence to the true posterior distribution.\\
+
+ Naturally, in the continuous case simulating from $f(z|\theta)$ until $z = y$ condition is met is infeasible, so we cannot approximate the integral in this manner. However, by accepting the proposed values so long as they are `close enough' to the observation $y$ we may again approximate the integral. This time however, the approximation is more in a heuristic sense and CLT no longer applies. Nonetheless, under some regularity conditions we may still show the convergence to a true posterior when $\epsilon\rightarrow 0$ (cite proofs showing convergence).\\
+ 
+One of the common practices is to use a summary statistics instead of a whole vector of observations $y$. In general this leads to a further deviation of the ABC approximation from the true posterior, save particular scenarios when the sufficient statistics is used for an exponential family of distribution (citation). The choice of an appropriate summary statistics $\eta(\cdot)$ is thus of vital importance - as a careless choice may lead to wrong conclusions being made - see example: (cite figure with spread of data).\\
+
+The algorithm~\ref{alg:ABCsampler} below summarises steps for the basic ABC sampler. For the discrete case $\epsilon = 0$ will lead to an exact approximation of the posterior distribution. In general it is not known what choice of $\epsilon$ leads to convergence to an appropriate posterior distribution. In practice the empirical quantiles are often used - i.e. some large number $N$ of times $\theta$'s and observations are simulated from the prior and likelihood respectively and the distances of the latter from the observation $y$ are computed. Then the lower $1\%$ or 0.1$\%$ or $0.01\%$ etc. quantile of the empirical distribution of distances is then taken as the tolerance level for the ABC run. Nonetheless, this approach is not devoid of flaws.
+
+\begin{algorithm}\label{alg:ABCsampler}
+ \KwData{Observation - $y$}
+ \KwResult{Approximation to the posterior distribution: $\pi(\theta|y)$}
+ \For{$i=1:N$}{
+  \Repeat{$\rho(\eta(z),\eta(y))\leq \epsilon$}{
+   Generate $\theta'$ from the prior distribution $\pi(\cdot)$\;
+   Generate $z$ from the likelihood $f(\cdot|\theta')$\;
+   }{
+   set $\theta_i = \theta'$\;
+  }
+ }
+ \caption{ABC sampler}
+\end{algorithm}
+
+heuristics for why it works in cts case\\
+assessment of convergence lacking\\
+\subsection{Toy example - MA}
+Consider a basic example of i.id. data generated from the normal distribution: $y\in\mathbbm{R}^{50}$, with
+\begin{equation}
+y_i\sim N(\mu = 3,\sigma^2 = 2^2)
+\end{equation}
+Suppose we know that observations $y$ follow the normal distribtuion, that we know the value of variance: $\sigma^2$ and we seek to infer the value of the mean parameter: $\mu$ - i.e. our likelihood is of the form:
+\begin{equation}
+l(\mu|y, \sigma^2) \propto \prod_i \exp\bigg( -\frac{1}{2}(y_i-\mu)^2 \bigg).
+\end{equation}
+Suppose also that our prior is $N(\mu_0 = 0,\sigma_0^2 = 10^2)$. In such a basic setting the posterior distribution $\pi(\mu|y)$ can be computed analytically and equals
+\begin{equation}
+\begin{split}
+\pi(\mu|y) &= N(\mu_n,\sigma_n^2),\\
+\sigma_n^2 &= \frac{1}{\frac{n}{\sigma^2}+\frac{1}{\sigma^2_0}},\\
+\mu_n &= \sigma_n^2 \bigg( \frac{\mu_0}{\sigma_0^2}+ \frac{n\bar{y}}{\sigma^2}\bigg),
+\end{split}
+\end{equation}
+with $\bar{y}$ - the empirical mean. We applied the ABC algorithm to this setting for different values of tolerance level and the results are plotted in figure~\ref{fig:normal}.
+\begin{figure}[ht]\centering
+\includegraphics[width=\linewidth]{graphs/normal}
+\caption{ABC posterior (blue histogram) for the data $y\in\mathbbm{R}^{50}$ generated from the $50$ i.i.d. draws from $N(3,2)$, gaussian likelihood $l(\mu|y,\sigma)$ and prior $N(0,10)$, for different values of the empirical tolerance level. True posterior is given by the green line. }
+\label{fig:normal}
+\end{figure}
+Of course using a large tolerance level leads to more samples being accepted by the algorithm, however the \emph{quality} of the samples is also quite poor, as they come from the regions of the tails of the posterior. 
+
+
+\subsection{Toy example - Gaussian}
+
+suff stats applies so epsilon to zero applies\\
+exact likelihood exists, so lets write it down\\
+\paragraph{Computational time} \lipsum[7] % Dummy text
+\paragraph{Tolerance} \lipsum[8] % Dummy text
+Tolerance in the MA example has no bearing
+
+\subsection{Variations of the algorithms}
+\begin{enumerate}[noitemsep] % [noitemsep] removes whitespace between the items for a compact look
+\item MCMC
+\item kernel
+\item Importance sampling
+\item noisy etc.
+\end{enumerate}
+
+\begin{figure}[ht]\centering
+\includegraphics[width=\linewidth]{graphs/time2}
+\caption{Computational time needed to find $100$ $\theta$-particles distributed according to ABC posterior with a given tolerance level. The underlying model is the same as the one from figure~\ref{fig:normal}}
+\label{fig:time}
+\end{figure}
+
+\begin{figure}[ht]\centering
+\includegraphics[width=\linewidth]{graphs/PoisVsGeom_underPois}
+\caption{ABC approximation of the Log-Bayes Factor (y-axis) vs. Analytically computed Log-Bayes Factor (x-axis) for the comparison of Model 1 $y\sim Pois(\theta)$ to Model 2 $y\sim Geom(\theta)$ for the posterior based on the statistic $\sum_{i=1}^Ny_i$. Underlying data $y_i$ are i.i.d. $Pois(4)$.}
+\label{fig:PoisGeom}
+\end{figure}
+
+
+Reference to Figure \ref{fig:results}.
+
+%------------------------------------------------
+
+\section{Model Selection}
+
+Why it is important when likelihood cannot be computed.\\
+Talk about competing algorithms for model selection. \\
+Heuristics for why model selection should work. and when it shouldn't.\\
+
+
+\subsection{Toy Example - MA}
+ we are not using sufficient statistics, and we don;'t get the right results.
+
+\begin{table}[hbt]
+\caption{Table of Grades}
+\centering
+\begin{tabular}{llr}
+\toprule
+\multicolumn{2}{c}{Name} \\
+\cmidrule(r){1-2}
+First name & Last Name & Grade \\
+\midrule
+John & Doe & $7.5$ \\
+Richard & Miles & $2$ \\
+\bottomrule
+\end{tabular}
+\label{tab:label}
+\end{table}
+
+\subsection{Toy Example - Poisson Geometric}
+Here we use sufficient statistics for each model separately, but not jointly.\\
+Go through why it does not work.\\
+
+\subsection{Toy Example - Gibbs Field}
+why it should give exact values. \\
+
+
+%------------------------------------------------
+%\phantomsection
+%\section*{Acknowledgments} % The \section*{} command stops section numbering
+
+%\addcontentsline{toc}{section}{Acknowledgments} % Adds this section to the table of contents
+
+%So long and thanks for all the fish \cite{Figueredo:2009dg}.
+
+%----------------------------------------------------------------------------------------
+%	REFERENCE LIST
+%----------------------------------------------------------------------------------------
+\phantomsection
+\bibliographystyle{unsrt}
+\bibliography{sample}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
