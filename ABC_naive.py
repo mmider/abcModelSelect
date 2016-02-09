@@ -17,7 +17,7 @@ def sampler(y, iterations, prior, likelihood,
     zs = []
     p = progress(iterations)
     for i in range(iterations):
-        p.progressStatus(i)
+        #p.progressStatus(i)
         d = 2 * (tolerance + 1)
         while d > tolerance:
             theta = prior.simul()
@@ -138,7 +138,7 @@ def modelChoiceSampler(y, iterations, paramPriors, likelihoods,
     y_stats = sum_statistics(y)
     p = progress(iterations)
     for i in range(iterations):
-        p.progressStatus(i)
+        #p.progressStatus(i)
         d = 2 * (tolerance + 1)
         while d > tolerance:
             m = modelPrior.simul()
@@ -168,7 +168,7 @@ def findEpsilon(y, iterations, prior, likelihood,
         z = likelihood.simul(theta, n_full)
         d = dist(sum_statistics(z), y_stats)
         dist_all.append(d)
-    n = np.floor(iterations * perc)
+    n = int(iterations * perc)
     return np.sort(dist_all)[n]
 
 class progress:

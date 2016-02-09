@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import ABC_naive as ABC
 import ABC_vectorized as ABCv
 import MA2
@@ -9,15 +10,18 @@ import RandFieldM1 as rf1
 import RandFieldM2 as rf2
 import exact_bayes_factor as bf
 import misc
+import Normal as nrm
+import time
+
 
 def test_MA2_samplers(which = "basic", noisy = False,
                       generator = "MA(2)", naive = True,
                       exactBF = False):
     # simulate observation
     if generator == "MA(2)":
-        y = MA2.likelihood.simul(theta = [0.6,0.2], n = 50+2)
+        y = MA2.likelihood.simul(theta = [0.6,0.2], n = 100+2)
     elif generator == "MA(1)":
-        y = MA1.likelihood.simul(theta = 0.6, n = 50+1)
+        y = MA1.likelihood.simul(theta = 0.6, n = 100+1)
     else:
         raise ValueError("Invalid name of the generator, "
                          "only MA(1) and MA(2) are allowed.")
@@ -40,7 +44,7 @@ def test_MA2_samplers(which = "basic", noisy = False,
                                      sum_statistics = misc.autocov,
                                      transKernel = MA2.transKernel)
         misc.plot_thetas(thetas)
-        
+
     elif which == "basic":
         eps = ABC.findEpsilon(y = y, iterations = N, prior = MA2.prior,
                               likelihood = MA2.likelihood,
@@ -54,7 +58,7 @@ def test_MA2_samplers(which = "basic", noisy = False,
                                  tolerance = eps,
                                  sum_statistics = misc.autocov)
         misc.plot_thetas(thetas)
-        
+
     elif which == "importance":
         thetas, zs, weights = ABC.importanceSampler(y = y,
                                                     iterations = int(1e5),
@@ -85,7 +89,7 @@ def test_MA2_samplers(which = "basic", noisy = False,
         eps = ABCv.findEpsilon(y = y, iterations = N, prior = MA2.prior,
                                   likelihood = MA2.likelihood,
                                     dist = misc.euclidean_dist_multi,
-                                    perc = np.array([0.01,0.001, 0.0001]),
+                                    perc = np.array([0.01,0.001, 0.0001, 0.00001]),
                                   sum_statistics = misc.autocov)
 
         if naive:
@@ -113,6 +117,7 @@ def test_MA2_samplers(which = "basic", noisy = False,
                                      sum_statistics = misc.autocov)
                 ev0 = ms[0]/(ms[0]+ms[1])
                 evs.append(ev0)
+        misc.plotMAModSel(evs)
         if exactBF:
             print("Finding actual Bayes Factor...\n")
             ev0exact = bf.MALogBayesFactor(y, resolution=(100,200))
@@ -144,13 +149,7 @@ def test_Geom_Pois(trueGener = "Pois", naive = True, numBF = False):
 
     # expected number of accepted samples
     iterations = int(N * perc)
-    """
-    eps = ABC.findEpsilon(y = y, iterations = N, prior = Geom.prior,
-                              likelihood = Geom.likelihood,
-                              dist = MA2.euclidean_dist, perc = perc,
-                              sum_statistics = np.sum)
-    print(eps)
-    """
+
     if naive:
         thetas, zs, ms = ABC.modelChoiceSampler(y = y, iterations = iterations,
                                                 paramPriors = [Pois.prior, Geom.prior],
@@ -172,30 +171,42 @@ def test_Geom_Pois(trueGener = "Pois", naive = True, numBF = False):
     if numBF:
         poislogev, geomlogev = bf.GeomPoisLogBayesFactor(y)
     misc.printModelChoice("Pois", "Geom", ev0, logBF = poislogev-geomlogev)
-    print("What I think it should be: ",2 * np.log(t0 + 1) - np.log(t0) - t0)
-    
+    print("What I think it should be: ", 2 * np.log(t0 + 1) - np.log(t0) - t0)
+    return (np.log(ev0) - np.log(1-ev0), poislogev - geomlogev)
+
+def plotGeomVsPois(trueGener = "Pois"):
+    approxs = []
+    exacts = []
+    for i in range(300):
+        approx, exact = test_Geom_Pois(trueGener, naive = False, numBF = True)
+        approxs.append(approx)
+        exacts.append(exact)
+    misc.plotGeomVsPois(exacts, approxs)
 
 def test_RandField(trueGener = "trivial", theta = 4, naive = True, exactBF = False):
-    theta = theta
     if trueGener == "trivial":
         gen = rf1.likelihood.simul
     else:
         gen = rf2.likelihood.simul
     y = gen(theta = theta, n = 50)
+    if (np.sum(y) == 50 or np.sum(y) == 0):
+        return (None,None)
     N = int(1e6)
     perc = 1e-3
     iterations = int(N * perc)
 
     if naive:
-        thetas, zs, ms = ABC.modelChoiceSampler(y = y, iterations = iterations,
+        thetas, zs, ms = ABC.modelChoiceSampler(y = y, iterations = int(1e2),
                                                     paramPriors = [rf1.prior, rf2.prior],
                                                     likelihoods = [rf1.likelihood, rf2.likelihood],
                                                     modelPrior = misc.twoModelsPrior,
                                                     dist = misc.euclidean_dist,
                                                     tolerance = 0,
                                                     sum_statistics = misc.RFSumStats)
+        print(len([m for m in ms if m == 0]))
+        print(len(ms))
         ev0 = len([m for m in ms if m == 0])/len(ms)
-    if naive:
+    else:
         ms = ABCv.modelChoiceSampler(y = y, iterations = N,
                                          paramPriors = [rf1.prior, rf2.prior],
                                          likelihoods = [rf1.likelihood, rf2.likelihood],
@@ -207,6 +218,56 @@ def test_RandField(trueGener = "trivial", theta = 4, naive = True, exactBF = Fal
 
     if exactBF:
         ev0_true, ev1_true = bf.RFBayesFactor(y)
-    misc.printModelChoice("trivial", "MarkovChain", ev0)
-    misc.printModelChoice("trivial", "MarkovChain", ev0v, ev0_true)
+    #misc.printModelChoice("trivial", "MarkovChain", ev0)
+    misc.printModelChoice("trivial", "MarkovChain", ev0, ev0_true)
+    return (ev0, ev0_true)
 
+def plot_RandField():
+    probs = []
+    probs_true = []
+    for gen in ("trivial",):
+        for i in range(100):
+            theta = rf1.prior.simul()
+            prob, prob_true = test_RandField(gen, theta = theta,
+                naive = True, exactBF = True)
+            if prob is not None:
+                probs.append(prob)
+                probs_true.append(prob_true)
+    misc.plotRF(probs, probs_true)
+
+
+def testNormal(plot = False, perc = 1e-3):
+    N = int(1e6)
+
+    # effective number of simulations:
+    iterations = int(1e2)
+
+    y = nrm.likelihood.simul(3,100)
+    eps = ABC.findEpsilon(y = y, iterations = N, prior = nrm.prior,
+                              likelihood = nrm.likelihood,
+                              dist = misc.euclidean_dist, perc = perc,
+                              sum_statistics = misc.meanVar)
+    thetas_all = []
+
+    t0 = time.clock()
+    thetas, zs = ABC.sampler(y = y, iterations = iterations,
+                                 prior = nrm.prior,
+                                 likelihood = nrm.likelihood,
+                                 dist = misc.euclidean_dist,
+                                 tolerance = eps,
+                                 sum_statistics = misc.meanVar)
+    thetas_all.append(thetas)
+    t1 = time.clock()
+    if plot:
+        misc.plotDensity(thetas_all, meanPrior = 0, sigmaPrior = 100,
+            empMean = np.mean(y), sigma = 4, n = 100)
+    print(np.mean(thetas))
+    return(t1-t0)
+
+def testNormalCompTime():
+    perc = np.array([1e-1, 1e-2, 1e-3, 1e-4])
+    compTime = np.zeros([len(perc), 5])
+    for i in range(len(perc)):
+        for j in range(5):
+            compTime[i,j] = testNormal(perc = perc[i])
+    misc.plotCompTimeNormal(compTime.T)

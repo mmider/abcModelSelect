@@ -18,7 +18,9 @@ def modelChoiceSampler(y, iterations, paramPriors, likelihoods,
         # remnants of non-vectorized code: ignore for the moment
         #thetas[i] = thetas[i][index]
         #zs[i] = zs[i][:,index]
+        print(ms[i])
         ms[i] = np.sum(1 * index)
+        print(ms[i])
     #zs = [val for sublist in zs for val in sublist]
     #theta = [val for sublist in zs for val in sublist]
     return ms

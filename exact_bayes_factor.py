@@ -5,15 +5,14 @@ import MA2
 import MA1
 
 #   ---   ---   ---   RANDOM FIELDS   ---   ---   ---   #
-
 def pwr(x,k):
     """
     Helper fn. for exclusive use with compute evidence.
     """
     if k == 0:
-        return np.log(x)
+        return -np.log(x)
     else:
-        return (x**k)/k
+        return (x**k)/(-k)
 
 def compute_evidence_RF(s,n,a,b):
     """
@@ -36,10 +35,10 @@ def RFBayesFactor(y):
     s = misc.RFSumStats(y)
 
     # marginal densities for the two models
-    evidence1 = compute_evidence_RF(s[0], n, -5, 5)
-    evidence2 = compute_evidence_RF(s[1], n-1, 0, 6)
-    
-    return (evidence1, evidence2)
+    ev0 = compute_evidence_RF(s[0], n, -5, 5)
+    ev1 = 0.5 * compute_evidence_RF(s[1], n-1, 0, 6)
+    prob0 = ev0/(ev0+ev1)
+    return (prob0, (1-prob0))
 
 
 
