@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 
 class prior:
@@ -20,15 +21,15 @@ class likelihood:
 
     @staticmethod
     def simul(theta, n):
-        prob_change_state = 1/(1+np.exp(theta))
+        prob_same_state = np.exp(theta) / (1.0 + np.exp(theta))
         z = np.zeros(n)
-        z[0] = np.random.binomial(1,0.5)
-        change_state = np.random.binomial(1,prob_change_state, n)
-        for i in range(1,n):
-            if change_state[i]:
-                z[i] = 1-z[i-1]
+        z[0] = np.random.binomial(1, 0.5)
+        same_state = np.random.binomial(1, prob_same_state, n)
+        for i in range(1, n):
+            if same_state[i]:
+                z[i] = z[i - 1]
             else:
-                z[i] = z[i-1]
+                z[i] = 1 - z[i - 1]
         return z
 
     @staticmethod
