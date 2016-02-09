@@ -153,13 +153,13 @@ Suppose also that our prior is $N(\mu_0 = 0,\sigma_0^2 = 10^2)$. In such a basic
 \mu_n &= \sigma_n^2 \bigg( \frac{\mu_0}{\sigma_0^2}+ \frac{n\bar{y}}{\sigma^2}\bigg),
 \end{split}
 \end{equation}
-with $\bar{y}$ - the empirical mean. We applied the ABC algorithm to this setting for different values of tolerance level and the results are plotted in figure~\ref{fig:normal}.
+with $\bar{y}$ - the empirical mean. We applied the ABC algorithm to this setting, using sample mean and variance as a sufficient statistic, and we did it for different values of tolerance levels. The results are plotted in figure~\ref{fig:normal}.
 \begin{figure}[ht]\centering
 \includegraphics[width=\linewidth]{graphs/normal}
 \caption{ABC posterior (blue histogram) for the data $y\in\mathbbm{R}^{50}$ generated from the $50$ i.i.d. draws from $N(3,2)$, gaussian likelihood $l(\mu|y,\sigma)$ and prior $N(0,10)$, for different values of the empirical tolerance level. True posterior is given by the green line. }
 \label{fig:normal}
 \end{figure}
-Of course using a large tolerance level leads to more samples being accepted by the algorithm, however the \emph{quality} of the samples is also quite poor, as they come from the regions of the tails of the posterior. 
+Of course using a larger tolerance level leads to more samples being accepted by the algorithm, however setting the tolerance too lax compromises the \emph{quality} of the samples - most of them ending up coming from the tails of the posterior distribution. They are too noisy and as a result the posterior estimates are inconclusive or simply wrong. This is what is hapenned when the tolerance level was set to the empirical $10\%$ quantile and the results are given by the upper-left graph. Decreasing the tolerance level tenfolds led to significant improvement, but only decreasing it to $0.1\%$ led to satisfactory fit to the actual posterior, beyond which point no further improvement was obseved for this particular granularity of sampling (number of samples drawn and bins being plotted on the histogram).
 
 
 \subsection{Toy example - Gaussian}
